@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     internal sealed partial class GroupedResultEnumerable<TSource, TKey, TElement, TResult> : IIListProvider<TResult>
     {

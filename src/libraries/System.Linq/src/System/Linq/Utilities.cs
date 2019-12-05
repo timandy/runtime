@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// Contains helper methods for System.Linq. Please put enumerable-related methods in <see cref="EnumerableHelpers"/>.

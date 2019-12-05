@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// A lightweight hash set.

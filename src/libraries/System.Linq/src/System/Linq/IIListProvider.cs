@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// An iterator that can produce an array or <see cref="List{TElement}"/> through an optimized path.

@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     public static partial class Enumerable
     {

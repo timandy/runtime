@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     // NOTE: DO NOT DELETE THE FOLLOWING DEBUG VIEW TYPES.
     // Although it might be tempting due to them not be referenced anywhere in this library,

@@ -5,7 +5,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     public partial class Lookup<TKey, TElement> : IIListProvider<IGrouping<TKey, TElement>>
     {

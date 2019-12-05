@@ -5,9 +5,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using static System.Linq.Utilities;
+using static System.LinqCore.Utilities;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     public static partial class Enumerable
     {

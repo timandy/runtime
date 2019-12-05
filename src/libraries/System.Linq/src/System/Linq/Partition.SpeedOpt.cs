@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// Represents an enumerable with zero elements.

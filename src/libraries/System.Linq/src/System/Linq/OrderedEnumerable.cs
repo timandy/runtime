@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     internal abstract partial class OrderedEnumerable<TElement> : IOrderedEnumerable<TElement>
     {

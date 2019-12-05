@@ -4,7 +4,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// An iterator that supports random access and can produce a partial sequence of its items through an optimized path.

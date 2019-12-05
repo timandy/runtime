@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     /// <summary>
     /// A buffer into which the contents of an <see cref="IEnumerable{TElement}"/> can be stored.

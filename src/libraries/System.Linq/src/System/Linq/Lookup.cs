@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace System.Linq
+namespace System.LinqCore
 {
     public static partial class Enumerable
     {
