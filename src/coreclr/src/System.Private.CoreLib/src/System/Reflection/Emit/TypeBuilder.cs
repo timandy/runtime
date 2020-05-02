@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using CultureInfo = System.Globalization.CultureInfo;
@@ -12,7 +13,7 @@ namespace System.Reflection.Emit
 {
     public sealed class TypeBuilder : TypeInfo
     {
-        public override bool IsAssignableFrom(TypeInfo? typeInfo)
+        public override bool IsAssignableFrom([NotNullWhen(true)] TypeInfo? typeInfo)
         {
             if (typeInfo == null) return false;
             return IsAssignableFrom(typeInfo.AsType());
@@ -720,6 +721,8 @@ namespace System.Reflection.Emit
 
         public override Module Module => GetModuleBuilder();
 
+        public override bool IsByRefLike => false;
+
         internal int MetadataTokenInternal => m_tdType.Token;
 
         #endregion
@@ -915,7 +918,7 @@ namespace System.Reflection.Emit
             return m_bakedRuntimeType.GetMembers(bindingAttr);
         }
 
-        public override bool IsAssignableFrom(Type? c)
+        public override bool IsAssignableFrom([NotNullWhen(true)] Type? c)
         {
             if (IsTypeEqual(c, this))
                 return true;
@@ -1141,7 +1144,7 @@ namespace System.Reflection.Emit
                 throw new ArgumentNullException(nameof(names));
 
             if (names.Length == 0)
-                throw new ArgumentException();
+                throw new ArgumentException(SR.Arg_EmptyArray, nameof(names));
 
             for (int i = 0; i < names.Length; i++)
                 if (names[i] == null)
@@ -1773,8 +1776,7 @@ namespace System.Reflection.Emit
                 parameterTypes, parameterTypeRequiredCustomModifiers, parameterTypeOptionalCustomModifiers);
 
             // get the signature in byte form
-            int sigLength;
-            sigBytes = sigHelper.InternalGetSignature(out sigLength);
+            sigBytes = sigHelper.InternalGetSignature(out int sigLength);
 
             ModuleBuilder module = m_module;
 

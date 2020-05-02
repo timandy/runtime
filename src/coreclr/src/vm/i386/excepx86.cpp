@@ -1078,35 +1078,6 @@ CPFH_RealFirstPassHandler(                  // ExceptionContinueSearch, etc.
         }
 #endif // FEATURE_CORRUPTING_EXCEPTIONS
 
-        // Check if we are dealing with AV or not and if we are,
-        // ensure that this is a real AV and not managed AV exception
-        BOOL fIsThrownExceptionAV = FALSE;
-        if ((pExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION) &&
-            (MscorlibBinder::GetException(kAccessViolationException) == throwable->GetMethodTable()))
-        {
-            // Its an AV - set the flag
-            fIsThrownExceptionAV = TRUE;
-        }
-
-        // Did we get an AV?
-        if (fIsThrownExceptionAV == TRUE)
-        {
-            // Get the escalation policy action for handling AV
-            EPolicyAction actionAV = GetEEPolicy()->GetActionOnFailure(FAIL_AccessViolation);
-
-            // Valid actions are: eNoAction (default behviour) or eRudeExitProcess
-            _ASSERTE(((actionAV == eNoAction) || (actionAV == eRudeExitProcess)));
-            if (actionAV == eRudeExitProcess)
-            {
-                LOG((LF_EH, LL_INFO100, "CPFH_RealFirstPassHandler: AccessViolation handler found and doing RudeExitProcess due to escalation policy (eRudeExitProcess)\n"));
-
-                // EEPolicy::HandleFatalError will help us RudeExit the process.
-                // RudeExitProcess due to AV is to prevent a security risk - we are ripping
-                // at the boundary, without looking for the handlers.
-                EEPOLICY_HANDLE_FATAL_ERROR(COR_E_SECURITY);
-            }
-        }
-
         // If we're out of memory, then we figure there's probably not memory to maintain a stack trace, so we skip it.
         // If we've got a stack overflow, then we figure the stack will be so huge as to make tracking the stack trace
         // impracticle, so we skip it.
@@ -1692,7 +1663,7 @@ EXCEPTION_HANDLER_IMPL(COMPlusFrameHandler)
     {
         if (pExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW)
         {
-            EEPolicy::HandleStackOverflow(SOD_ManagedFrameHandler, (void*)pEstablisherFrame);
+            EEPolicy::HandleStackOverflow();
 
             // VC's unhandled exception filter plays with stack.  It VirtualAlloc's a new stack, and
             // then launch Watson from the new stack.  When Watson asks CLR to save required data, we
@@ -1867,21 +1838,6 @@ NOINLINE LPVOID COMPlusEndCatchWorker(Thread * pThread)
 
     // Sync managed exception state, for the managed thread, based upon any active exception tracker
     pThread->SyncManagedExceptionState(fIsDebuggerHelperThread);
-
-    if (InlinedCallFrame::FrameHasActiveCall(pThread->m_pFrame))
-    {
-        // When unwinding an exception in ReadyToRun, the JIT_PInvokeEnd helper which unlinks the ICF from
-        // the thread will be skipped. This is because unlike jitted code, each pinvoke is wrapped by calls
-        // to the JIT_PInvokeBegin and JIT_PInvokeEnd helpers, which push and pop the ICF on the thread. The
-        // ICF is not linked at the method prolog and unlined at the epilog when running R2R code. Since the
-        // JIT_PInvokeEnd helper will be skipped, we need to unlink the ICF here. If the executing method
-        // has another pinovoke, it will re-link the ICF again when the JIT_PInvokeBegin helper is called
-
-        if (ExecutionManager::IsReadyToRunCode(((InlinedCallFrame*)pThread->m_pFrame)->m_pCallerReturnAddress))
-        {
-            pThread->m_pFrame->Pop(pThread);
-        }
-    }
 
     LOG((LF_EH, LL_INFO1000, "COMPlusPEndCatch: esp=%p\n", esp));
 
@@ -2801,7 +2757,7 @@ StackWalkAction COMPlusUnwindCallback (CrawlFrame *pCf, ThrowCallbackType *pData
             // that won't be reflected via the IL stub's MethodDesc.
             pFuncWithCEAttribute = GetUserMethodForILStub(pThread, (UINT_PTR)pStack, pFunc, &pILStubFrame);
         }
-        fCanMethodHandleException = CEHelper::CanMethodHandleException(currentSeverity, pFuncWithCEAttribute, FALSE);
+        fCanMethodHandleException = CEHelper::CanMethodHandleException(currentSeverity, pFuncWithCEAttribute);
     }
 #endif // FEATURE_CORRUPTING_EXCEPTIONS
 
@@ -3138,6 +3094,39 @@ void ResumeAtJitEH(CrawlFrame* pCf,
         *pHandlerEnd = EHClausePtr->HandlerEndPC;
     }
 
+    MethodDesc* pMethodDesc = pCf->GetCodeInfo()->GetMethodDesc();
+    TADDR startAddress = pCf->GetCodeInfo()->GetStartAddress();
+    if (InlinedCallFrame::FrameHasActiveCall(pThread->m_pFrame))
+    {
+        // When unwinding an exception in ReadyToRun, the JIT_PInvokeEnd helper which unlinks the ICF from
+        // the thread will be skipped. This is because unlike jitted code, each pinvoke is wrapped by calls
+        // to the JIT_PInvokeBegin and JIT_PInvokeEnd helpers, which push and pop the ICF on the thread. The
+        // ICF is not linked at the method prolog and unlinked at the epilog when running R2R code. Since the
+        // JIT_PInvokeEnd helper will be skipped, we need to unlink the ICF here. If the executing method
+        // has another pinvoke, it will re-link the ICF again when the JIT_PInvokeBegin helper is called.
+
+        // Check that the InlinedCallFrame is in the method with the exception handler. There can be other
+        // InlinedCallFrame somewhere up the call chain that is not related to the current exception
+        // handling.
+
+#ifdef DEBUG
+        TADDR handlerFrameSP = pCf->GetRegisterSet()->SP;
+#endif // DEBUG
+        // Find the ESP of the caller of the method with the exception handler.
+        bool unwindSuccess = pCf->GetCodeManager()->UnwindStackFrame(pCf->GetRegisterSet(),
+                                                                     pCf->GetCodeInfo(),
+                                                                     pCf->GetCodeManagerFlags(),
+                                                                     pCf->GetCodeManState(),
+                                                                     NULL /* StackwalkCacheUnwindInfo* */);
+        _ASSERTE(unwindSuccess);
+
+        if (((TADDR)pThread->m_pFrame < pCf->GetRegisterSet()->SP) && ExecutionManager::IsReadyToRunCode(((InlinedCallFrame*)pThread->m_pFrame)->m_pCallerReturnAddress))
+        {
+            _ASSERTE((TADDR)pThread->m_pFrame >= handlerFrameSP);
+            pThread->m_pFrame->Pop(pThread);
+        }
+    }
+
     // save esp so that endcatch can restore it (it always restores, so want correct value)
     ExInfo* pExInfo = &(pThread->GetExceptionState()->m_currentExInfo);
     pExInfo->m_dEsp = (LPVOID)context.GetSP();
@@ -3251,7 +3240,7 @@ void ResumeAtJitEH(CrawlFrame* pCf,
     // that the handle for the current ExInfo has been freed has been delivered
     pExInfo->m_EHClauseInfo.SetManagedCodeEntered(TRUE);
 
-    ETW::ExceptionLog::ExceptionCatchBegin(pCf->GetCodeInfo()->GetMethodDesc(), (PVOID)pCf->GetCodeInfo()->GetStartAddress());
+    ETW::ExceptionLog::ExceptionCatchBegin(pMethodDesc, (PVOID)startAddress);
 
     ResumeAtJitEHHelper(&context);
     UNREACHABLE_MSG("Should never return from ResumeAtJitEHHelper!");
@@ -3613,7 +3602,6 @@ LONG CLRNoCatchHandler(EXCEPTION_POINTERS* pExceptionInfo, PVOID pv)
     return EXCEPTION_CONTINUE_SEARCH;
 #endif // !FEATURE_EH_FUNCLETS
 }
-#endif // !DACCESS_COMPILE
 
 // Returns TRUE if caller should resume execution.
 BOOL
@@ -3635,7 +3623,7 @@ AdjustContextForVirtualStub(
     PCODE f_IP = GetIP(pContext);
 
     VirtualCallStubManager::StubKind sk;
-    /* VirtualCallStubManager *pMgr = */ VirtualCallStubManager::FindStubManager(f_IP, &sk);
+    VirtualCallStubManager *pMgr = VirtualCallStubManager::FindStubManager(f_IP, &sk);
 
     if (sk == VirtualCallStubManager::SK_DISPATCH)
     {
@@ -3661,11 +3649,12 @@ AdjustContextForVirtualStub(
         return FALSE;
     }
 
-    PCODE callsite = GetAdjustedCallAddress(*dac_cast<PTR_PCODE>(GetSP(pContext)));
+    PCODE callsite = *dac_cast<PTR_PCODE>(GetSP(pContext));
     if (pExceptionRecord != NULL)
     {
         pExceptionRecord->ExceptionAddress = (PVOID)callsite;
     }
+
     SetIP(pContext, callsite);
 
 #if defined(GCCOVER_TOLERATE_SPURIOUS_AV)
@@ -3675,7 +3664,35 @@ AdjustContextForVirtualStub(
 #endif // defined(GCCOVER_TOLERATE_SPURIOUS_AV)
 
     // put ESP back to what it was before the call.
-    SetSP(pContext, dac_cast<PCODE>(dac_cast<PTR_BYTE>(GetSP(pContext)) + sizeof(void*)));
+    TADDR sp = GetSP(pContext) + sizeof(void*);
+
+#ifndef UNIX_X86_ABI
+    // set the ESP to what it would be after the call (remove pushed arguments)
+
+    size_t stackArgumentsSize;
+    if (sk == VirtualCallStubManager::SK_DISPATCH)
+    {
+        ENABLE_FORBID_GC_LOADER_USE_IN_THIS_SCOPE();
+
+        DispatchHolder *holder = DispatchHolder::FromDispatchEntry(f_IP);
+        MethodTable *pMT = (MethodTable*)holder->stub()->expectedMT();
+        DispatchToken token(VirtualCallStubManager::GetTokenFromStubQuick(pMgr, f_IP, sk));
+        MethodDesc* pMD = VirtualCallStubManager::GetRepresentativeMethodDescFromToken(token, pMT);
+        stackArgumentsSize = pMD->SizeOfArgStack();
+    }
+    else
+    {
+        // Compute the stub entry address from the address of failure (location of dereferencing of "this" pointer)
+        ResolveHolder *holder = ResolveHolder::FromResolveEntry(f_IP - ResolveStub::offsetOfThisDeref());
+        stackArgumentsSize = holder->stub()->stackArgumentsSize();
+    }
+
+    sp += stackArgumentsSize;
+#endif // UNIX_X86_ABI
+
+    SetSP(pContext, dac_cast<PCODE>(dac_cast<PTR_BYTE>(sp)));
 
     return TRUE;
 }
+
+#endif // !DACCESS_COMPILE

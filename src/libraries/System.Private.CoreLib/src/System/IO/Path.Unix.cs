@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace System.IO
@@ -103,7 +103,7 @@ namespace System.IO
             return Encoding.UTF8.GetString(name, 0, name.Length - 1); // trim off the trailing '\0'
         }
 
-        public static bool IsPathRooted(string? path)
+        public static bool IsPathRooted([NotNullWhen(true)] string? path)
         {
             if (path == null)
                 return false;
@@ -136,7 +136,7 @@ namespace System.IO
         {
             get
             {
-                #if PLATFORM_OSX
+                #if TARGET_OSX || TARGET_IOS || TARGET_TVOS
                     return false;
                 #else
                     return true;

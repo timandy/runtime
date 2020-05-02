@@ -8,7 +8,7 @@ using System.Threading;
 using Internal.Runtime.CompilerServices;
 
 #pragma warning disable SA1121 // explicitly using type aliases instead of built-in types
-#if BIT64
+#if TARGET_64BIT
 using nint = System.Int64;
 #else
 using nint = System.Int32;
@@ -125,7 +125,7 @@ namespace System.Runtime.InteropServices
 
             // Get the address.
 
-            object target = InternalGet(GetHandleValue(handle));
+            object? target = InternalGet(GetHandleValue(handle));
             if (target is null)
             {
                 return default;

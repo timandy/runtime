@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -26,14 +27,15 @@ namespace System.Net.Http
             _content = content;
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context) =>
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
             SerializeToStreamAsync(stream, context, CancellationToken.None);
 
+#if NETCOREAPP
+        protected override
+#else
         internal
-#if HTTP_DLL
-            override
 #endif
-            Task SerializeToStreamAsync(Stream stream, TransportContext context, CancellationToken cancellationToken)
+            Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
             Debug.Assert(stream != null);
 
@@ -53,17 +55,17 @@ namespace System.Net.Http
             {
                 copyTask = copyTask.ContinueWith((t, s) =>
                 {
-                    try { ((Stream)s).Dispose(); } catch { }
+                    try { ((Stream)s!).Dispose(); } catch { }
                     t.GetAwaiter().GetResult();
                 }, _content, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
             return copyTask;
         }
 
-#if HTTP_DLL
-        protected internal
-#else
+#if WINHTTPHANDLER_DLL
         protected
+#else
+        protected internal
 #endif
             override bool TryComputeLength(out long length)
         {
@@ -82,7 +84,7 @@ namespace System.Net.Http
 
         protected override Task<Stream> CreateContentReadStreamAsync() => Task.FromResult(_content);
 
-#if HTTP_DLL
+#if !WINHTTPHANDLER_DLL
         internal override Stream TryCreateContentReadStream() => _content;
 
         internal override bool AllowDuplex => false;

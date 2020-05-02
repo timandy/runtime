@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Diagnostics;
 using System.Net.Security;
 using System.Collections.Generic;
 using System.Security.Authentication;
@@ -72,13 +71,13 @@ namespace System.Net.Http
             set => _socketsHttpHandler.UseProxy = value;
         }
 
-        public IWebProxy Proxy
+        public IWebProxy? Proxy
         {
             get => _socketsHttpHandler.Proxy;
             set => _socketsHttpHandler.Proxy = value;
         }
 
-        public ICredentials DefaultProxyCredentials
+        public ICredentials? DefaultProxyCredentials
         {
             get => _socketsHttpHandler.DefaultProxyCredentials;
             set => _socketsHttpHandler.DefaultProxyCredentials = value;
@@ -112,7 +111,7 @@ namespace System.Net.Http
             }
         }
 
-        public ICredentials Credentials
+        public ICredentials? Credentials
         {
             get => _socketsHttpHandler.Credentials;
             set => _socketsHttpHandler.Credentials = value;
@@ -152,13 +151,13 @@ namespace System.Net.Http
                     case ClientCertificateOption.Manual:
                         ThrowForModifiedManagedSslOptionsIfStarted();
                         _clientCertificateOptions = value;
-                        _socketsHttpHandler.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertificateHelper.GetEligibleClientCertificate(ClientCertificates);
+                        _socketsHttpHandler.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertificateHelper.GetEligibleClientCertificate(ClientCertificates)!;
                         break;
 
                     case ClientCertificateOption.Automatic:
                         ThrowForModifiedManagedSslOptionsIfStarted();
                         _clientCertificateOptions = value;
-                        _socketsHttpHandler.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertificateHelper.GetEligibleClientCertificate();
+                        _socketsHttpHandler.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertificateHelper.GetEligibleClientCertificate()!;
                         break;
 
                     default:
@@ -181,7 +180,7 @@ namespace System.Net.Http
             }
         }
 
-        public Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> ServerCertificateCustomValidationCallback
+        public Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? ServerCertificateCustomValidationCallback
         {
             get => (_socketsHttpHandler.SslOptions.RemoteCertificateValidationCallback?.Target as ConnectHelper.CertificateCallbackMapper)?.FromHttpClientHandler;
             set
@@ -213,7 +212,7 @@ namespace System.Net.Http
             }
         }
 
-        public IDictionary<string, object> Properties => _socketsHttpHandler.Properties;
+        public IDictionary<string, object?> Properties => _socketsHttpHandler.Properties;
 
         protected internal override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
             CancellationToken cancellationToken)
@@ -222,6 +221,14 @@ namespace System.Net.Http
                 _diagnosticsHandler.SendAsync(request, cancellationToken) :
                 _socketsHttpHandler.SendAsync(request, cancellationToken);
         }
+
         public static Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> DangerousAcceptAnyServerCertificateValidator { get; } = delegate { return true; };
+
+        private void ThrowForModifiedManagedSslOptionsIfStarted()
+        {
+            // Hack to trigger an InvalidOperationException if a property that's stored on
+            // SslOptions is changed, since SslOptions itself does not do any such checks.
+            _socketsHttpHandler.SslOptions = _socketsHttpHandler.SslOptions;
+        }
     }
 }

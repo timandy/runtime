@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), Interop.settings.targets))\Interop.settings.targets" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(Interop.settings.targets))" />
   <PropertyGroup>
     <OutputType>library</OutputType>
   </PropertyGroup>
@@ -7,5 +7,11 @@
     <Compile Include="*.cs" />
     <Compile Include="../ServerContracts/Server.Contracts.cs" />
     <Compile Include="../ServerContracts/ServerGuids.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CLRTestNeedTarget>1</CLRTestNeedTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <TraitTags Include="OsSpecific" />
   </ItemGroup>
 </Project>

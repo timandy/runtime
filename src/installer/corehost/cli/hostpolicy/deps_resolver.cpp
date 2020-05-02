@@ -316,7 +316,7 @@ bool deps_resolver_t::probe_deps_entry(const deps_entry_t& entry, const pal::str
                 // If the deps json has the package name and version, then someone has already done rid selection and
                 // put the right asset in the dir. So checking just package name and version would suffice.
                 // No need to check further for the exact asset relative sub path.
-                if (config.probe_deps_json->has_package(entry.library_name, entry.library_version) && entry.to_dir_path(probe_dir, candidate))
+                if (config.probe_deps_json->has_package(entry.library_name, entry.library_version) && entry.to_dir_path(probe_dir, false, candidate))
                 {
                     trace::verbose(_X("    Probed deps json and matched '%s'"), candidate->c_str());
                     return true;
@@ -334,7 +334,7 @@ bool deps_resolver_t::probe_deps_entry(const deps_entry_t& entry, const pal::str
             {
                 if (entry.is_rid_specific)
                 {
-                    if (entry.to_rel_path(deps_dir, candidate))
+                    if (entry.to_rel_path(deps_dir, true, candidate))
                     {
                         trace::verbose(_X("    Probed deps dir and matched '%s'"), candidate->c_str());
                         return true;
@@ -343,7 +343,7 @@ bool deps_resolver_t::probe_deps_entry(const deps_entry_t& entry, const pal::str
                 else
                 {
                     // Non-rid assets, lookup in the published dir.
-                    if (entry.to_dir_path(deps_dir, candidate))
+                    if (entry.to_dir_path(deps_dir, true, candidate))
                     {
                         trace::verbose(_X("    Probed deps dir and matched '%s'"), candidate->c_str());
                         return true;
@@ -414,7 +414,6 @@ bool deps_resolver_t::resolve_tpa_list(
         std::unordered_set<pal::string_t>* breadcrumb,
         bool ignore_missing_assemblies)
 {
-    const std::vector<deps_entry_t> empty(0);
     name_to_resolved_asset_map_t items;
 
     auto process_entry = [&](const pal::string_t& deps_dir, const deps_entry_t& entry, int fx_level) -> bool
@@ -549,14 +548,17 @@ bool deps_resolver_t::resolve_tpa_list(
     }
 
     // Probe FX deps entries after app assemblies are added.
-    for (size_t i = 1; i < m_fx_definitions.size(); ++i)
+    if (m_is_framework_dependent)
     {
-        const auto& deps_entries = m_is_framework_dependent ? m_fx_definitions[i]->get_deps().get_entries(deps_entry_t::asset_types::runtime) : empty;
-        for (const auto& entry : deps_entries)
+        for (size_t i = 1; i < m_fx_definitions.size(); ++i)
         {
-            if (!process_entry(m_fx_definitions[i]->get_dir(), entry, i))
+            const auto& deps_entries = m_fx_definitions[i]->get_deps().get_entries(deps_entry_t::asset_types::runtime);
+            for (const auto& entry : deps_entries)
             {
-                return false;
+                if (!process_entry(m_fx_definitions[i]->get_dir(), entry, i))
+                {
+                    return false;
+                }
             }
         }
     }
@@ -588,12 +590,6 @@ void deps_resolver_t::init_known_entry_path(const deps_entry_t& entry, const pal
     if (m_coreclr_path.empty() && ends_with(path, DIR_SEPARATOR + pal::string_t(LIBCORECLR_NAME), false))
     {
         m_coreclr_path = path;
-        m_coreclr_library_version = entry.library_version;
-        return;
-    }
-    if (m_clrjit_path.empty() && ends_with(path, DIR_SEPARATOR + pal::string_t(LIBCLRJIT_NAME), false))
-    {
-        m_clrjit_path = path;
         return;
     }
 }
@@ -763,8 +759,6 @@ bool deps_resolver_t::resolve_probe_dirs(
     // Filter out non-serviced assets so the paths can be added after servicing paths.
     pal::string_t non_serviced;
 
-    std::vector<deps_entry_t> empty(0);
-
     pal::string_t candidate;
 
     auto add_package_cache_entry = [&](const deps_entry_t& entry, const pal::string_t& deps_dir, int fx_level) -> bool
@@ -826,7 +820,6 @@ bool deps_resolver_t::resolve_probe_dirs(
         add_unique_path(asset_type, m_app_dir, &items, output, &non_serviced, core_servicing);
 
         (void) library_exists_in_dir(m_app_dir, LIBCORECLR_NAME, &m_coreclr_path);
-        (void) library_exists_in_dir(m_app_dir, LIBCLRJIT_NAME, &m_clrjit_path);
     }
 
     // Handle any additional deps.json that were specified.
@@ -892,7 +885,6 @@ bool deps_resolver_t::resolve_probe_paths(probe_paths_t* probe_paths, std::unord
 
     // If we found coreclr and the jit during native path probe, set the paths now.
     probe_paths->coreclr = m_coreclr_path;
-    probe_paths->clrjit = m_clrjit_path;
 
     return true;
 }

@@ -52,11 +52,6 @@
   <!-- ResolveAssemblyReferences is the target that populates ReferenceCopyLocalPaths which is what is copied to output directory. -->
   <Target Name="CopyRunnerToOutputDirectory" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
-      <!-- Add the runner configuration file -->
-      <None Include="$(TestRunnerConfigPath)"
-            CopyToOutputDirectory="PreserveNewest"
-            Visible="false" />
-
       <!-- Copy test runner to output directory -->
       <None Include="$([System.IO.Path]::GetDirectoryName('$(XunitConsole472Path)'))\*"
             Exclude="$([System.IO.Path]::GetDirectoryName('$(XunitConsole472Path)'))\xunit.console.*exe.config;$([System.IO.Path]::GetDirectoryName('$(XunitConsole472Path)'))\xunit.console.x86.exe"
@@ -64,7 +59,7 @@
             CopyToOutputDirectory="PreserveNewest"
             Visible="false" />
 
-      <_xunitConsoleNetCoreExclude Condition="'$(GenerateDependencyFile)' != 'true'" Include="$([System.IO.Path]::GetDirectoryName('$(XunitConsoleNetCore21AppPath)'))\xunit.console.deps.json" />
+      <_xunitConsoleNetCoreExclude Condition="'$(GenerateDependencyFile)' != 'true' and '$(XunitConsoleNetCore21AppPath)' != ''" Include="$([System.IO.Path]::GetDirectoryName('$(XunitConsoleNetCore21AppPath)'))\xunit.console.deps.json" />
       <None Include="$([System.IO.Path]::GetDirectoryName('$(XunitConsoleNetCore21AppPath)'))\*"
             Exclude="@(_xunitConsoleNetCoreExclude)"
             Condition="'$(TargetsNetCoreApp)' == 'true' and '$(XunitConsoleNetCore21AppPath)' != ''"

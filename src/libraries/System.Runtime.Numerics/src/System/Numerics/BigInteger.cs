@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace System.Numerics
@@ -206,7 +207,8 @@ namespace System.Numerics
         public BigInteger(decimal value)
         {
             // First truncate to get scale to 0 and extract bits
-            int[] bits = decimal.GetBits(decimal.Truncate(value));
+            Span<int> bits = stackalloc int[4];
+            decimal.GetBits(decimal.Truncate(value), bits);
 
             Debug.Assert(bits.Length == 4 && (bits[3] & DecimalScaleFactorMask) == 0);
 
@@ -672,12 +674,12 @@ namespace System.Numerics
             return BigNumber.ParseBigInteger(value, style, NumberFormatInfo.GetInstance(provider));
         }
 
-        public static bool TryParse(string? value, out BigInteger result)
+        public static bool TryParse([NotNullWhen(true)] string? value, out BigInteger result)
         {
             return TryParse(value, NumberStyles.Integer, NumberFormatInfo.CurrentInfo, out result);
         }
 
-        public static bool TryParse(string? value, NumberStyles style, IFormatProvider? provider, out BigInteger result)
+        public static bool TryParse([NotNullWhen(true)] string? value, NumberStyles style, IFormatProvider? provider, out BigInteger result)
         {
             return BigNumber.TryParseBigInteger(value, style, NumberFormatInfo.GetInstance(provider), out result);
         }

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
 using Internal.Text;
 using Internal.TypeSystem;
 using Internal.TypeSystem.Ecma;
@@ -55,18 +56,24 @@ namespace ILCompiler.DependencyAnalysis.ReadyToRun
         private unsafe byte[] GetRvaData(int targetPointerSize)
         {
             int size = 0;
-            byte[] result = Array.Empty<byte>();
 
             MetadataReader metadataReader = _module.MetadataReader;
             BlobReader metadataBlob = new BlobReader(_module.PEReader.GetMetadata().Pointer, _module.PEReader.GetMetadata().Length);
             metadataBlob.Offset = metadataReader.GetTableMetadataOffset(TableIndex.FieldRva);
-
-            ImmutableArray<byte> memBlock = _module.PEReader.GetSectionData(_rva).GetContent();
-
+            bool compressedFieldRef = 6 == metadataReader.GetTableRowSize(TableIndex.FieldRva);
+            
             for (int i = 1; i <= metadataReader.GetTableRowCount(TableIndex.FieldRva); i++)
             {
                 int currentFieldRva = metadataBlob.ReadInt32();
-                short currentFieldRid = metadataBlob.ReadInt16();
+                int currentFieldRid;
+                if (compressedFieldRef)
+                {
+                    currentFieldRid = metadataBlob.ReadInt16();
+                }
+                else
+                {
+                    currentFieldRid = metadataBlob.ReadInt32();
+                }
                 if (currentFieldRva != _rva)
                     continue;
 
@@ -76,18 +83,20 @@ namespace ILCompiler.DependencyAnalysis.ReadyToRun
                 int currentSize = field.FieldType.GetElementSize().AsInt;
                 if (currentSize > size)
                 {
-                    if (currentSize > memBlock.Length)
-                        throw new BadImageFormatException();
-
                     // We need to handle overlapping fields by reusing blobs based on the rva, and just update
                     // the size and contents
                     size = currentSize;
-                    result = new byte[AlignmentHelper.AlignUp(size, targetPointerSize)];
-                    memBlock.CopyTo(0, result, 0, size);
                 }
             }
 
             Debug.Assert(size > 0);
+
+            PEMemoryBlock block = _module.PEReader.GetSectionData(_rva);
+            if (block.Length < size)
+                throw new BadImageFormatException();
+
+            byte[] result = new byte[AlignmentHelper.AlignUp(size, targetPointerSize)];
+            block.GetContent(0, size).CopyTo(result);
             return result;
         }
 

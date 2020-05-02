@@ -105,7 +105,20 @@ private:
 
 static UMEntryThunkFreeList s_thunkFreeList(DEFAULT_THUNK_FREE_LIST_THRESHOLD);
 
-#if defined(_TARGET_X86_) && !defined(FEATURE_STUBS_AS_IL)
+#ifdef TARGET_X86
+
+#ifdef FEATURE_STUBS_AS_IL
+
+EXTERN_C void UMThunkStub(void);
+
+PCODE UMThunkMarshInfo::GetExecStubEntryPoint()
+{
+    LIMITED_METHOD_CONTRACT;
+
+    return GetEEFuncEntryPoint(UMThunkStub);
+}
+
+#else // FEATURE_STUBS_AS_IL
 
 EXTERN_C VOID __cdecl UMThunkStubRareDisable();
 EXTERN_C Thread* __stdcall CreateThreadBlockThrow();
@@ -754,16 +767,18 @@ Stub *UMThunkMarshInfo::CompileNExportThunk(LoaderHeap *pLoaderHeap, PInvokeStat
     return pcpusl->Link(pLoaderHeap);
 }
 
-#else // _TARGET_X86_ && !FEATURE_STUBS_AS_IL
+#endif // FEATURE_STUBS_AS_IL
+
+#else // TARGET_X86
 
 PCODE UMThunkMarshInfo::GetExecStubEntryPoint()
 {
     LIMITED_METHOD_CONTRACT;
 
-    return GetEEFuncEntryPoint(UMThunkStub);
+    return m_pILStub;
 }
 
-#endif // _TARGET_X86_ && !FEATURE_STUBS_AS_IL
+#endif // TARGET_X86
 
 UMEntryThunkCache::UMEntryThunkCache(AppDomain *pDomain) :
     m_crst(CrstUMEntryThunkCache),
@@ -833,8 +848,9 @@ UMEntryThunk *UMEntryThunkCache::GetUMEntryThunk(MethodDesc *pMD)
     RETURN pThunk;
 }
 
-// FailFast if a native callable method invoked directly from managed code.
-// UMThunkStub.asm check the mode and call this function to failfast.
+// FailFast if a method marked UnmanagedCallersOnlyAttribute is
+// invoked directly from managed code. UMThunkStub.asm check the
+// mode and call this function to failfast.
 extern "C" VOID STDCALL ReversePInvokeBadTransition()
 {
     STATIC_CONTRACT_THROWS;
@@ -842,7 +858,7 @@ extern "C" VOID STDCALL ReversePInvokeBadTransition()
     // Fail
     EEPOLICY_HANDLE_FATAL_ERROR_WITH_MESSAGE(
                                              COR_E_EXECUTIONENGINE,
-                                             W("Invalid Program: attempted to call a NativeCallable method from runtime-typesafe code.")
+                                             W("Invalid Program: attempted to call a UnmanagedCallersOnly method from managed code.")
                                             );
 }
 
@@ -961,10 +977,17 @@ void UMEntryThunk::Terminate()
     CONTRACTL
     {
         NOTHROW;
+        MODE_ANY;
     }
     CONTRACTL_END;
 
     m_code.Poison();
+
+    if (GetObjectHandle())
+    {
+        DestroyLongWeakHandle(GetObjectHandle());
+        m_pObjectHandle = 0;
+    }
 
     s_thunkFreeList.AddToList(this);
 }
@@ -1031,7 +1054,7 @@ UMThunkMarshInfo::~UMThunkMarshInfo()
     }
     CONTRACTL_END;
 
-#if defined(_TARGET_X86_) && !defined(FEATURE_STUBS_AS_IL)
+#if defined(TARGET_X86) && !defined(FEATURE_STUBS_AS_IL)
     if (m_pExecStub)
         m_pExecStub->DecRef();
 #endif
@@ -1093,7 +1116,7 @@ VOID UMThunkMarshInfo::LoadTimeInit(Signature sig, Module * pModule, MethodDesc 
     m_pModule = pModule;
     m_sig = sig;
 
-#if defined(_TARGET_X86_) && !defined(FEATURE_STUBS_AS_IL)
+#if defined(TARGET_X86) && !defined(FEATURE_STUBS_AS_IL)
     INDEBUG(m_cbRetPop = 0xcccc;)
 #endif
 }
@@ -1136,7 +1159,7 @@ VOID UMThunkMarshInfo::RunTimeInit()
         pFinalILStub = GetStubForInteropMethod(pMD, dwStubFlags, &pStubMD);
     }
 
-#if defined(_TARGET_X86_) && !defined(FEATURE_STUBS_AS_IL)
+#if defined(TARGET_X86) && !defined(FEATURE_STUBS_AS_IL)
     PInvokeStaticSigInfo sigInfo;
 
     if (pMD != NULL)
@@ -1183,40 +1206,27 @@ VOID UMThunkMarshInfo::RunTimeInit()
             pFinalExecStub->DecRef();
     }
 
-#else // _TARGET_X86_ && !FEATURE_STUBS_AS_IL
+#else // TARGET_X86 && !FEATURE_STUBS_AS_IL
 
     if (pFinalILStub == NULL)
     {
-        if (pMD != NULL && !pMD->IsEEImpl() &&
-            !NDirect::MarshalingRequired(pMD, GetSignature().GetRawSig(), GetModule()))
-        {
-            // Call the method directly in no-delegate case if possible. This is important to avoid JITing
-            // for stubs created via code:ICLRRuntimeHost2::CreateDelegate during coreclr startup.
-            pFinalILStub = pMD->GetMultiCallableAddrOfCode();
-        }
+        PInvokeStaticSigInfo sigInfo;
+
+        if (pMD != NULL)
+            new (&sigInfo) PInvokeStaticSigInfo(pMD);
         else
-        {
-            // For perf, it is important to avoid expensive initialization of
-            // PInvokeStaticSigInfo if we have NGened stub.
-            PInvokeStaticSigInfo sigInfo;
+            new (&sigInfo) PInvokeStaticSigInfo(GetSignature(), GetModule());
 
-            if (pMD != NULL)
-                new (&sigInfo) PInvokeStaticSigInfo(pMD);
-            else
-                new (&sigInfo) PInvokeStaticSigInfo(GetSignature(), GetModule());
+        DWORD dwStubFlags = 0;
 
-            DWORD dwStubFlags = 0;
+        if (sigInfo.IsDelegateInterop())
+            dwStubFlags |= NDIRECTSTUB_FL_DELEGATE;
 
-            if (sigInfo.IsDelegateInterop())
-                dwStubFlags |= NDIRECTSTUB_FL_DELEGATE;
-
-            pStubMD = GetILStubMethodDesc(pMD, &sigInfo, dwStubFlags);
-            pFinalILStub = JitILStub(pStubMD);
-
-        }
+        pStubMD = GetILStubMethodDesc(pMD, &sigInfo, dwStubFlags);
+        pFinalILStub = JitILStub(pStubMD);
     }
 
-#if defined(_TARGET_X86_)
+#if defined(TARGET_X86)
     MetaSig sig(pMD);
     int numRegistersUsed = 0;
     UINT16 cbRetPop = 0;
@@ -1270,22 +1280,15 @@ VOID UMThunkMarshInfo::RunTimeInit()
         // For all the other calling convention except cdecl, callee pops the stack arguments
         m_cbRetPop = cbRetPop + static_cast<UINT16>(m_cbActualArgSize);
     }
-#else // _TARGET_X86_
-    //
-    // m_cbActualArgSize gets the number of arg bytes for the NATIVE signature
-    //
-    m_cbActualArgSize =
-        (pStubMD != NULL) ? pStubMD->AsDynamicMethodDesc()->GetNativeStackArgSize() : pMD->SizeOfArgStack();
+#endif // TARGET_X86
 
-#endif // _TARGET_X86_
-
-#endif // _TARGET_X86_ && !FEATURE_STUBS_AS_IL
+#endif // TARGET_X86 && !FEATURE_STUBS_AS_IL
 
     // Must be the last thing we set!
     InterlockedCompareExchangeT<PCODE>(&m_pILStub, pFinalILStub, (PCODE)1);
 }
 
-#if defined(_TARGET_X86_) && defined(FEATURE_STUBS_AS_IL)
+#if defined(TARGET_X86) && defined(FEATURE_STUBS_AS_IL)
 VOID UMThunkMarshInfo::SetupArguments(char *pSrc, ArgumentRegisters *pArgRegs, char *pDst)
 {
     MethodDesc *pMD = GetMethod();
@@ -1363,7 +1366,7 @@ EXTERN_C VOID STDCALL UMThunkStubSetupArgumentsWorker(UMThunkMarshInfo *pMarshIn
 {
     pMarshInfo->SetupArguments(pSrc, pArgRegs, pDst);
 }
-#endif // _TARGET_X86_ && FEATURE_STUBS_AS_IL
+#endif // TARGET_X86 && FEATURE_STUBS_AS_IL
 
 #ifdef _DEBUG
 void STDCALL LogUMTransition(UMEntryThunk* thunk)

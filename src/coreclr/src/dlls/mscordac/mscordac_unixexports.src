@@ -18,7 +18,7 @@ IID_IStream
 IID_ICLRDataTarget
 IID_ICorDebugDataTarget4
 IID_ICLRDataEnumMemoryRegionsCallback
-nativeStringResourceTable_mscorrc_debug
+nativeStringResourceTable_mscorrc
 
 ; All the # exports are prefixed with DAC_
 #PAL_CatchHardwareExceptionHolderEnter
@@ -81,7 +81,6 @@ nativeStringResourceTable_mscorrc_debug
 #sscanf_s
 
 #CopyFileW
-#CreateDirectoryW
 #CreateFileMappingA
 #CreateFileMappingW
 #CreateFileA
@@ -120,12 +119,9 @@ nativeStringResourceTable_mscorrc_debug
 #GetFileSize
 #GetFullPathNameW
 #GetLastError
-#GetLongPathNameW
 #GetModuleFileNameW
 #GetNumaHighestNodeNumber
 #GetProcAddress
-#GetProcessHeap
-#GetShortPathNameW
 #GetStdHandle
 #GetSystemInfo
 #GetSystemTime
@@ -133,9 +129,6 @@ nativeStringResourceTable_mscorrc_debug
 #GetTempFileNameW
 #GetTempPathA
 #GetTempPathW
-#HeapAlloc
-#HeapFree
-#HeapSetInformation
 #InitializeCriticalSection
 #IsDBCSLeadByte
 #LeaveCriticalSection
@@ -159,12 +152,10 @@ nativeStringResourceTable_mscorrc_debug
 #ReadFile
 #ReleaseMutex
 #ReleaseSemaphore
-#RemoveDirectoryW
 #ResetEvent
 #ResumeThread
 #SearchPathW
 #SetEvent
-#SetFileAttributesW
 #SetFilePointer
 #SetLastError
 #SetErrorMode

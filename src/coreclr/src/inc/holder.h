@@ -608,9 +608,9 @@ class BaseWrapper : public BaseHolder<TYPE, BASE, DEFAULTVALUE, IS_NULL>
     {
         return !!(this->m_value != TYPE(value));
     }
-#ifdef __GNUC__
-    // This handles the NULL value that is an int and clang
-    // doesn't want to convert int to a pointer
+
+    // This handles the NULL value that is an int and the
+    // compiler doesn't want to convert int to a pointer.
     FORCEINLINE bool operator==(int value) const
     {
         return !!(this->m_value == TYPE((void*)(SIZE_T)value));
@@ -619,7 +619,7 @@ class BaseWrapper : public BaseHolder<TYPE, BASE, DEFAULTVALUE, IS_NULL>
     {
         return !!(this->m_value != TYPE((void*)(SIZE_T)value));
     }
-#endif // __GNUC__
+
     FORCEINLINE const TYPE &operator->() const
     {
         return this->m_value;
@@ -1175,10 +1175,10 @@ FORCEINLINE void CounterDecrease(RAW_KEYWORD(volatile) LONG* p) {InterlockedDecr
 typedef Wrapper<RAW_KEYWORD(volatile) LONG*, CounterIncrease, CounterDecrease, (UINT_PTR)0, CompareDefault<RAW_KEYWORD(volatile) LONG*>> CounterHolder;
 
 
-#ifndef FEATURE_PAL
+#ifdef HOST_WINDOWS
 FORCEINLINE void RegKeyRelease(HKEY k) {RegCloseKey(k);};
 typedef Wrapper<HKEY,DoNothing,RegKeyRelease> RegKeyHolder;
-#endif // !FEATURE_PAL
+#endif // HOST_WINDOWS
 
 class ErrorModeHolder
 {
@@ -1189,7 +1189,7 @@ public:
     UINT OldMode() {return m_oldMode;};
 };
 
-#ifndef FEATURE_PAL
+#ifdef HOST_WINDOWS
 //-----------------------------------------------------------------------------
 // HKEYHolder : HKEY holder, Calls RegCloseKey on scope exit.
 //
@@ -1244,7 +1244,7 @@ public:
 private:
     HKEY m_value;
 };
-#endif // !FEATURE_PAL
+#endif // HOST_WINDOWS
 
 //----------------------------------------------------------------------------
 //

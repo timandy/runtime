@@ -721,7 +721,7 @@ namespace System.Tests
 
         [Theory]
         [MemberData(nameof(Equals_TestData))]
-        public static void Equals(DateTimeOffset dateTimeOffset1, object obj, bool expectedEquals, bool expectedEqualsExact)
+        public static void EqualsTest(DateTimeOffset dateTimeOffset1, object obj, bool expectedEquals, bool expectedEqualsExact)
         {
             Assert.Equal(expectedEquals, dateTimeOffset1.Equals(obj));
             if (obj is DateTimeOffset)
@@ -1163,7 +1163,7 @@ namespace System.Tests
 
         public static IEnumerable<object[]> ToString_MatchesExpected_MemberData()
         {
-            // Randomly generated data on netfx with:
+            // Randomly generated data on .NET Framework with:
             //     using System;
             //     class Program
             //     {

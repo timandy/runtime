@@ -1,6 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configurations>netcoreapp-Debug;netcoreapp-Release;netcoreapp3.0-Debug;netcoreapp3.0-Release;netstandard2.0-Debug;netstandard2.0-Release;netstandard1.3-Debug;netstandard1.3-Release</Configurations>
+    <TargetFrameworks>$(NetCoreAppCurrent);netstandard1.3;netstandard2.0;netcoreapp3.0</TargetFrameworks>
+    <ExcludeCurrentNetCoreAppFromPackage>true</ExcludeCurrentNetCoreAppFromPackage>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
@@ -24,8 +25,10 @@
     <Compile Include="System\Threading\Channels\IDebugEnumerator.cs" />
     <Compile Include="System\Threading\Channels\SingleConsumerUnboundedChannel.cs" />
     <Compile Include="System\Threading\Channels\UnboundedChannel.cs" />
-    <Compile Include="$(CommonPath)Internal\Padding.cs" Link="Common\Internal\Padding.cs" />
-    <Compile Include="$(CommonPath)System\Collections\Concurrent\SingleProducerConsumerQueue.cs" Link="Common\System\Collections\Concurrent\SingleProducerConsumerQueue.cs" />
+    <Compile Include="$(CommonPath)Internal\Padding.cs"
+             Link="Common\Internal\Padding.cs" />
+    <Compile Include="$(CommonPath)System\Collections\Concurrent\SingleProducerConsumerQueue.cs"
+             Link="Common\System\Collections\Concurrent\SingleProducerConsumerQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Collections" />

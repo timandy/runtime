@@ -10,6 +10,7 @@ namespace System.DirectoryServices.Protocols.Tests
     public class SortRequestControlTests
     {
         [Theory]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/34679", TestPlatforms.Windows, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
         [InlineData(true)]
         [InlineData(false)]
         public void Ctor_SortKeys(bool critical)
@@ -91,7 +92,7 @@ namespace System.DirectoryServices.Protocols.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "The field _keys in full framework is called keys, so GetField returns null and ends up in a NRE")]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "The field _keys in .NET Framework is called keys, so GetField returns null and ends up in a NRE")]
         public void SortKeys_GetNull_ReturnsEmptyArray()
         {
             var control = new SortRequestControl();

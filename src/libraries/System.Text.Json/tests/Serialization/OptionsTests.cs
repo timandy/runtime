@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 using Xunit;
@@ -203,6 +205,7 @@ namespace System.Text.Json.Serialization.Tests
             options.ReadCommentHandling = JsonCommentHandling.Skip;
 
             int value = JsonSerializer.Deserialize<int>("1 /* commment */", options);
+            Assert.Equal(1, value);
         }
 
         [Theory]
@@ -326,9 +329,9 @@ namespace System.Text.Json.Serialization.Tests
         [Fact]
         public static void Options_GetConverterForObjectJsonElement_GivesCorrectConverter()
         {
-            GenericObjectOrJsonElementConverterTestHelper<object>("JsonConverterObject", new object(), "[3]", true);
+            GenericObjectOrJsonElementConverterTestHelper<object>("ObjectConverter", new object(), "[3]", true);
             JsonElement element = JsonDocument.Parse("[3]").RootElement;
-            GenericObjectOrJsonElementConverterTestHelper<JsonElement>("JsonConverterJsonElement", element, "[3]", false);
+            GenericObjectOrJsonElementConverterTestHelper<JsonElement>("JsonElementConverter", element, "[3]", false);
         }
 
         private static void GenericObjectOrJsonElementConverterTestHelper<T>(string converterName, object objectValue, string stringValue, bool throws)
@@ -381,28 +384,28 @@ namespace System.Text.Json.Serialization.Tests
         public static void Options_GetConverter_GivesCorrectDefaultConverterAndReadWriteSuccess()
         {
             var options = new JsonSerializerOptions();
-            GenericConverterTestHelper<bool>("JsonConverterBoolean", true, "true", options);
-            GenericConverterTestHelper<byte>("JsonConverterByte", (byte)128, "128", options);
-            GenericConverterTestHelper<char>("JsonConverterChar", 'A', "\"A\"", options);
-            GenericConverterTestHelper<double>("JsonConverterDouble", 15.1d, "15.1", options);
-            GenericConverterTestHelper<SampleEnum>("JsonConverterEnum`1", SampleEnum.Two, "2", options);
-            GenericConverterTestHelper<short>("JsonConverterInt16", (short)5, "5", options);
-            GenericConverterTestHelper<int>("JsonConverterInt32", -100, "-100", options);
-            GenericConverterTestHelper<long>("JsonConverterInt64", (long)11111, "11111", options);
-            GenericConverterTestHelper<sbyte>("JsonConverterSByte", (sbyte)-121, "-121", options);
-            GenericConverterTestHelper<float>("JsonConverterSingle", 14.5f, "14.5", options);
-            GenericConverterTestHelper<string>("JsonConverterString", "Hello", "\"Hello\"", options);
-            GenericConverterTestHelper<ushort>("JsonConverterUInt16", (ushort)1206, "1206", options);
-            GenericConverterTestHelper<uint>("JsonConverterUInt32", (uint)3333, "3333", options);
-            GenericConverterTestHelper<ulong>("JsonConverterUInt64", (ulong)44444, "44444", options);
-            GenericConverterTestHelper<decimal>("JsonConverterDecimal", 3.3m, "3.3", options);
-            GenericConverterTestHelper<byte[]>("JsonConverterByteArray", new byte[] { 1, 2, 3, 4 }, "\"AQIDBA==\"", options);
-            GenericConverterTestHelper<DateTime>("JsonConverterDateTime", new DateTime(2018, 12, 3), "\"2018-12-03T00:00:00\"", options);
-            GenericConverterTestHelper<DateTimeOffset>("JsonConverterDateTimeOffset", new DateTimeOffset(new DateTime(2018, 12, 3, 00, 00, 00, DateTimeKind.Utc)), "\"2018-12-03T00:00:00+00:00\"", options);
+            GenericConverterTestHelper<bool>("BooleanConverter", true, "true", options);
+            GenericConverterTestHelper<byte>("ByteConverter", (byte)128, "128", options);
+            GenericConverterTestHelper<char>("CharConverter", 'A', "\"A\"", options);
+            GenericConverterTestHelper<double>("DoubleConverter", 15.1d, "15.1", options);
+            GenericConverterTestHelper<SampleEnum>("EnumConverter`1", SampleEnum.Two, "2", options);
+            GenericConverterTestHelper<short>("Int16Converter", (short)5, "5", options);
+            GenericConverterTestHelper<int>("Int32Converter", -100, "-100", options);
+            GenericConverterTestHelper<long>("Int64Converter", (long)11111, "11111", options);
+            GenericConverterTestHelper<sbyte>("SByteConverter", (sbyte)-121, "-121", options);
+            GenericConverterTestHelper<float>("SingleConverter", 14.5f, "14.5", options);
+            GenericConverterTestHelper<string>("StringConverter", "Hello", "\"Hello\"", options);
+            GenericConverterTestHelper<ushort>("UInt16Converter", (ushort)1206, "1206", options);
+            GenericConverterTestHelper<uint>("UInt32Converter", (uint)3333, "3333", options);
+            GenericConverterTestHelper<ulong>("UInt64Converter", (ulong)44444, "44444", options);
+            GenericConverterTestHelper<decimal>("DecimalConverter", 3.3m, "3.3", options);
+            GenericConverterTestHelper<byte[]>("ByteArrayConverter", new byte[] { 1, 2, 3, 4 }, "\"AQIDBA==\"", options);
+            GenericConverterTestHelper<DateTime>("DateTimeConverter", new DateTime(2018, 12, 3), "\"2018-12-03T00:00:00\"", options);
+            GenericConverterTestHelper<DateTimeOffset>("DateTimeOffsetConverter", new DateTimeOffset(new DateTime(2018, 12, 3, 00, 00, 00, DateTimeKind.Utc)), "\"2018-12-03T00:00:00+00:00\"", options);
             Guid testGuid = new Guid();
-            GenericConverterTestHelper<Guid>("JsonConverterGuid", testGuid, $"\"{testGuid.ToString()}\"", options);
-            GenericConverterTestHelper<KeyValuePair<string, string>>("JsonKeyValuePairConverter`2", new KeyValuePair<string, string>("key", "value"), @"{""Key"":""key"",""Value"":""value""}", options);
-            GenericConverterTestHelper<Uri>("JsonConverterUri", new Uri("http://test.com"), "\"http://test.com\"", options);
+            GenericConverterTestHelper<Guid>("GuidConverter", testGuid, $"\"{testGuid.ToString()}\"", options);
+            GenericConverterTestHelper<KeyValuePair<string, string>>("KeyValuePairConverter`2", new KeyValuePair<string, string>("key", "value"), @"{""Key"":""key"",""Value"":""value""}", options);
+            GenericConverterTestHelper<Uri>("UriConverter", new Uri("http://test.com"), "\"http://test.com\"", options);
             
         }
 
@@ -445,6 +448,234 @@ namespace System.Text.Json.Serialization.Tests
                 converter.Write(writer, (T)objectValue, null); // Test with null option.
                 writer.Flush();
                 Assert.Equal(stringValue + stringValue, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+        }
+
+        [Fact]
+        public static void CopyConstructorTest_OriginalMutable()
+        {
+            JsonSerializerOptions options = CreateOptionsInstance();
+            var newOptions = new JsonSerializerOptions(options);
+            VerifyOptionsEqual(options, newOptions);
+
+            // No exception is thrown on mutating the new options instance because it is "unlocked".
+            newOptions.ReferenceHandling = ReferenceHandling.Preserve;
+            newOptions.Converters.Add(new JsonStringEnumConverter());
+            newOptions.Converters.Add(new JsonStringEnumConverter());
+
+            // Changes to new options don't affect old options.
+            Assert.Equal(ReferenceHandling.Default, options.ReferenceHandling);
+            Assert.Equal(2, options.Converters.Count);
+            Assert.Equal(4, newOptions.Converters.Count);
+
+            // Changes to old options don't affect new options.
+            options.DefaultBufferSize = 2;
+            options.Converters.Add(new ConverterForInt32());
+
+            Assert.Equal(20, newOptions.DefaultBufferSize);
+            Assert.Equal(3, options.Converters.Count);
+            Assert.Equal(4, newOptions.Converters.Count);
+        }
+
+        [Fact]
+        public static void CopyConstructorTest_OriginalLocked()
+        {
+            JsonSerializerOptions options = CreateOptionsInstance();
+
+            // Perform serialization with options, after which it will be locked.
+            JsonSerializer.Serialize("1", options);
+            Assert.Throws<InvalidOperationException>(() => options.ReferenceHandling = ReferenceHandling.Preserve);
+
+            var newOptions = new JsonSerializerOptions(options);
+            VerifyOptionsEqual(options, newOptions);
+
+            // No exception is thrown on mutating the new options instance because it is "unlocked".
+            newOptions.ReferenceHandling = ReferenceHandling.Preserve;
+        }
+
+        [Fact]
+        public static void CopyConstructorTest_MaxDepth()
+        {
+            static void RunTest(int maxDepth, int effectiveMaxDepth)
+            {
+                var options = new JsonSerializerOptions { MaxDepth = maxDepth };
+                var newOptions = new JsonSerializerOptions(options);
+
+                Assert.Equal(maxDepth, options.MaxDepth);
+                Assert.Equal(maxDepth, newOptions.MaxDepth);
+
+                // Test for default effective max depth in exception message.
+                var myList = new List<object>();
+                myList.Add(myList);
+
+                string effectiveMaxDepthAsStr = effectiveMaxDepth.ToString();
+
+                JsonException ex = Assert.Throws<JsonException>(() => JsonSerializer.Serialize(myList, options));
+                Assert.Contains(effectiveMaxDepthAsStr, ex.ToString());
+
+                ex = Assert.Throws<JsonException>(() => JsonSerializer.Serialize(myList, newOptions));
+                Assert.Contains(effectiveMaxDepthAsStr, ex.ToString());
+            }
+
+            // Zero max depth
+            RunTest(0, 64);
+
+            // Specified max depth
+            RunTest(25, 25);
+        }
+
+        [Fact]
+        public static void CopyConstructorTest_CopiesAllPublicProperties()
+        {
+            JsonSerializerOptions options = GetFullyPopulatedOptionsInstance();
+            var newOptions = new JsonSerializerOptions(options);
+            VerifyOptionsEqual_WithReflection(options, newOptions);
+        }
+
+        [Fact]
+        public static void CopyConstructorTest_NullInput()
+        {
+            ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() => new JsonSerializerOptions(null));
+            Assert.Contains("options", ex.ToString());
+        }
+
+        private static JsonSerializerOptions CreateOptionsInstance()
+        {
+            var options = new JsonSerializerOptions
+            {
+                AllowTrailingCommas = true,
+                DefaultBufferSize = 20,
+                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+                Encoder = JavaScriptEncoder.Default,
+                IgnoreNullValues = true,
+                IgnoreReadOnlyProperties = true,
+                MaxDepth = 32,
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = new SimpleSnakeCasePolicy(),
+                ReadCommentHandling = JsonCommentHandling.Disallow,
+                ReferenceHandling = ReferenceHandling.Default,
+                WriteIndented = true,
+            };
+
+            options.Converters.Add(new JsonStringEnumConverter());
+            options.Converters.Add(new ConverterForInt32());
+
+            return options;
+        }
+
+        private static void VerifyOptionsEqual(JsonSerializerOptions options, JsonSerializerOptions newOptions)
+        {
+            Assert.Equal(options.AllowTrailingCommas, newOptions.AllowTrailingCommas);
+            Assert.Equal(options.DefaultBufferSize, newOptions.DefaultBufferSize);
+            Assert.Equal(options.IgnoreNullValues, newOptions.IgnoreNullValues);
+            Assert.Equal(options.IgnoreReadOnlyProperties, newOptions.IgnoreReadOnlyProperties);
+            Assert.Equal(options.MaxDepth, newOptions.MaxDepth);
+            Assert.Equal(options.PropertyNameCaseInsensitive, newOptions.PropertyNameCaseInsensitive);
+            Assert.Equal(options.ReadCommentHandling, newOptions.ReadCommentHandling);
+            Assert.Equal(options.WriteIndented, newOptions.WriteIndented);
+
+            Assert.Same(options.DictionaryKeyPolicy, newOptions.DictionaryKeyPolicy);
+            Assert.Same(options.Encoder, newOptions.Encoder);
+            Assert.Same(options.PropertyNamingPolicy, newOptions.PropertyNamingPolicy);
+
+            Assert.Equal(options.Converters.Count, newOptions.Converters.Count);
+            for (int i = 0; i < options.Converters.Count; i++)
+            {
+                Assert.Same(options.Converters[i], newOptions.Converters[i]);
+            }
+        }
+
+        private static JsonSerializerOptions GetFullyPopulatedOptionsInstance()
+        {
+            var options = new JsonSerializerOptions();
+
+            foreach (PropertyInfo property in typeof(JsonSerializerOptions).GetProperties())
+            {
+                Type propertyType = property.PropertyType;
+
+                if (propertyType == typeof(bool))
+                {
+                    property.SetValue(options, true);
+                }
+                if (propertyType == typeof(int))
+                {
+                    property.SetValue(options, 32);
+                }
+                else if (propertyType == typeof(IList<JsonConverter>))
+                {
+                    options.Converters.Add(new JsonStringEnumConverter());
+                    options.Converters.Add(new ConverterForInt32());
+                }
+                else if (propertyType == typeof(JavaScriptEncoder))
+                {
+                    options.Encoder = JavaScriptEncoder.Default;
+                }
+                else if (propertyType == typeof(JsonNamingPolicy))
+                {
+                    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                    options.DictionaryKeyPolicy = new SimpleSnakeCasePolicy();
+                }
+                else if (propertyType == typeof(ReferenceHandling))
+                {
+                    options.ReferenceHandling = ReferenceHandling.Preserve;
+                }
+                else if (propertyType.IsValueType)
+                {
+                    options.ReadCommentHandling = JsonCommentHandling.Disallow;
+                }
+                else
+                {
+                    // An exception thrown from here means this test should be updated
+                    // to reflect any newly added properties on JsonSerializerOptions.
+                    property.SetValue(options, Activator.CreateInstance(propertyType));
+                }
+            }
+
+            return options;
+        }
+
+        private static void VerifyOptionsEqual_WithReflection(JsonSerializerOptions options, JsonSerializerOptions newOptions)
+        {
+            foreach (PropertyInfo property in typeof(JsonSerializerOptions).GetProperties())
+            {
+                Type propertyType = property.PropertyType;
+
+                if (propertyType == typeof(bool))
+                {
+                    Assert.True((bool)property.GetValue(options));
+                    Assert.Equal((bool)property.GetValue(options), (bool)property.GetValue(newOptions));
+                }
+                else if (propertyType == typeof(int))
+                {
+                    Assert.Equal(32, (int)property.GetValue(options));
+                    Assert.Equal((int)property.GetValue(options), (int)property.GetValue(newOptions));
+                }
+                else if (typeof(IEnumerable).IsAssignableFrom(propertyType))
+                {
+                    var list1 = (IList<JsonConverter>)property.GetValue(options);
+                    var list2 = (IList<JsonConverter>)property.GetValue(newOptions);
+
+                    Assert.Equal(list1.Count, list2.Count);
+                    for (int i = 0; i < list1.Count; i++)
+                    {
+                        Assert.Same(list1[i], list2[i]);
+                    }
+                }
+                else if (propertyType.IsValueType)
+                {
+                    if (property.Name == "ReadCommentHandling")
+                    {
+                        Assert.Equal(options.ReadCommentHandling, newOptions.ReadCommentHandling);
+                    }
+                    else
+                    {
+                        Assert.True(false, $"Public option was added to JsonSerializerOptions but not copied in the copy ctor: {property.Name}");
+                    }
+                }
+                else
+                {
+                    Assert.Same(property.GetValue(options), property.GetValue(newOptions));
+                }
             }
         }
     }

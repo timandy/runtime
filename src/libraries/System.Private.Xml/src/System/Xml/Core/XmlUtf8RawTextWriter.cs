@@ -670,8 +670,11 @@ namespace System.Xml
                 // Output all characters (except for previous characters stored at beginning of buffer)
                 if (!writeToNull)
                 {
-                    Debug.Assert(stream != null);
-                    stream.Write(bufBytes, 1, bufPos - 1);
+                    if (bufPos - 1 > 0)
+                    {
+                        Debug.Assert(stream != null);
+                        stream.Write(bufBytes, 1, bufPos - 1);
+                    }
                 }
             }
             catch
@@ -1708,7 +1711,7 @@ namespace System.Xml
             return pDst + 3;
         }
 
-        protected unsafe void ValidateContentChars(string chars, string propertyName, bool allowOnlyWhitespace)
+        protected void ValidateContentChars(string chars, string propertyName, bool allowOnlyWhitespace)
         {
             if (allowOnlyWhitespace)
             {

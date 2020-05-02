@@ -21,13 +21,18 @@
 
     <RuntimeGroup Include="android">
       <Parent>linux</Parent>
-      <Architectures>arm;arm64</Architectures>
-      <Versions>21</Versions>
+      <Architectures>x64;x86;arm;arm64</Architectures>
+      <Versions>21;22;23;24;25;26;27;28;29</Versions>
     </RuntimeGroup>
 
     <RuntimeGroup Include="arch">
       <Parent>linux</Parent>
       <Architectures>x64</Architectures>
+    </RuntimeGroup>
+
+    <RuntimeGroup Include="browser">
+      <Parent>any</Parent>
+      <Architectures>wasm</Architectures>
     </RuntimeGroup>
 
     <RuntimeGroup Include="centos">
@@ -48,13 +53,24 @@
     <RuntimeGroup Include="fedora">
       <Parent>linux</Parent>
       <Architectures>x64;arm64</Architectures>
-      <Versions>23;24;25;26;27;28;29;30;31;32</Versions>
+      <Versions>23;24;25;26;27;28;29;30;31;32;33</Versions>
       <TreatVersionsAsCompatible>false</TreatVersionsAsCompatible>
     </RuntimeGroup>
 
     <RuntimeGroup Include="gentoo">
       <Parent>linux</Parent>
       <Architectures>x64</Architectures>
+    </RuntimeGroup>
+
+    <RuntimeGroup Include="ios">
+      <Parent>unix</Parent>
+      <Architectures>arm</Architectures>
+      <Versions>8;9;10</Versions>
+    </RuntimeGroup>
+    <RuntimeGroup Include="ios">
+      <Parent>unix</Parent>
+      <Architectures>arm64;x64</Architectures>
+      <Versions>8;9;10;11;12;13</Versions>
     </RuntimeGroup>
 
     <!-- linux mint includes major version in Include because Parent is different for each major -->
@@ -134,7 +150,13 @@
     <RuntimeGroup Include="tizen">
       <Parent>linux</Parent>
       <Architectures>x86;armel</Architectures>
-      <Versions>4.0.0;5.0.0</Versions>
+      <Versions>4.0.0;5.0.0;5.5.0;6.0.0</Versions>
+    </RuntimeGroup>
+
+    <RuntimeGroup Include="tvos">
+      <Parent>unix</Parent>
+      <Architectures>arm64;x64</Architectures>
+      <Versions>10;11;12;13</Versions>
     </RuntimeGroup>
 
     <RuntimeGroup Include="ubuntu">

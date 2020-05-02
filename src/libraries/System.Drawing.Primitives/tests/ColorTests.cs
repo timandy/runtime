@@ -250,7 +250,7 @@ namespace System.Drawing.Primitives.Tests
 
         [Theory]
         [MemberData(nameof(ColorNamePairs))]
-        public void GetHashCode(string name1, string name2)
+        public void GetHashCodeTest(string name1, string name2)
         {
             Assert.NotEqual(name1, name2);
             Color c1 = GetColorByProperty(name1) ?? Color.FromName(name1);
@@ -623,7 +623,8 @@ namespace System.Drawing.Primitives.Tests
         [Fact]
         public void GetHashCodeForUnknownNamed()
         {
-            // NetFX gives all such colors the same hash code. CoreFX makes more effort with them.
+            // The .NET Framework gives all unknown colors the same hashcode,
+            // .NET Core will provide a unique hashcode.
             Color c1 = Color.FromName("SomeUnknownColorName");
             Color c2 = Color.FromName("AnotherUnknownColorName");
             Assert.NotEqual(c2.GetHashCode(), c1.GetHashCode());
