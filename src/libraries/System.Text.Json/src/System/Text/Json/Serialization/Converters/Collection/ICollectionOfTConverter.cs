@@ -13,7 +13,7 @@ namespace System.Text.Json.Serialization.Converters
         : IEnumerableDefaultConverter<TCollection, TElement>
         where TCollection : ICollection<TElement>
     {
-        protected override void Add(TElement value, ref ReadStack state)
+        protected override void Add(in TElement value, ref ReadStack state)
         {
             ((ICollection<TElement>)state.Current.ReturnValue!).Add(value);
         }
@@ -35,7 +35,7 @@ namespace System.Text.Json.Serialization.Converters
             {
                 if (classInfo.CreateObject == null)
                 {
-                    ThrowHelper.ThrowNotSupportedException_DeserializeNoDeserializationConstructor(TypeToConvert, ref reader, ref state);
+                    ThrowHelper.ThrowNotSupportedException_DeserializeNoConstructor(TypeToConvert, ref reader, ref state);
                 }
 
                 TCollection returnValue = (TCollection)classInfo.CreateObject()!;

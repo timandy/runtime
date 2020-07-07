@@ -11,9 +11,6 @@
 
 
 #include "common.h"
-#ifdef FEATURE_COMINTEROP
-#include <appxutil.h>
-#endif
 #include "eeconfig.h"
 #include "method.hpp"
 #include "eventtrace.h"
@@ -125,11 +122,6 @@ HRESULT EEConfig::Init()
     fJitAlignLoops = false;
     fJitMinOpts = false;
     fPInvokeRestoreEsp = (DWORD)-1;
-
-#ifdef FEATURE_CORRUPTING_EXCEPTIONS
-    // By default, there is not pre-V4 CSE policy
-    fLegacyCorruptedStateExceptionsPolicy = false;
-#endif // FEATURE_CORRUPTING_EXCEPTIONS
 
     fNgenBindOptimizeNonGac = false;
     fStressLog = false;

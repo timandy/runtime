@@ -4,8 +4,6 @@
 
 #include "createdump.h"
 
-bool g_diagnostics = false;
-
 //
 // The Windows create dump code
 //
@@ -41,9 +39,9 @@ CreateDump(const char* dumpPath, int pid, MINIDUMP_TYPE minidumpType)
         else
         {
             int err = GetLastError();
-            if (err != ERROR_PARTIAL_COPY)
+            if (err != HRESULT_FROM_WIN32(ERROR_PARTIAL_COPY))
             {
-                fprintf(stderr, "Write dump FAILED %d\n", err);
+                fprintf(stderr, "Write dump FAILED 0x%08x\n", err);
                 break;
             }
         }

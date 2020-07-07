@@ -10,13 +10,6 @@ using System.Text;
 using System.Text.Unicode;
 using Internal.Runtime.CompilerServices;
 
-#pragma warning disable SA1121 // explicitly using type aliases instead of built-in types
-#if TARGET_64BIT
-using nuint = System.UInt64;
-#else // TARGET_64BIT
-using nuint = System.UInt32;
-#endif // TARGET_64BIT
-
 namespace System.Globalization
 {
     /// <summary>
@@ -34,7 +27,7 @@ namespace System.Globalization
         }
 
         private string? _listSeparator;
-        private bool _isReadOnly = false;
+        private bool _isReadOnly;
 
         private readonly string _cultureName;
         private readonly CultureData _cultureData;

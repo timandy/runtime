@@ -70,8 +70,12 @@
              Link="ProductionCode\Common\System\Threading\Tasks\TaskToApm.cs" />
     <Compile Include="..\..\src\System\Net\Http\SocketsHttpHandler\AuthenticationHelper.Digest.cs"
              Link="ProductionCode\System\Net\Http\SocketsHttpHandler\AuthenticationHelper.Digest.cs" />
+    <Compile Include="..\..\src\System\Net\Http\HttpBaseStream.cs"
+             Link="ProductionCode\System\Net\Http\HttpBaseStream.cs" />
     <Compile Include="..\..\src\System\Net\Http\ByteArrayContent.cs"
              Link="ProductionCode\System\Net\Http\ByteArrayContent.cs" />
+    <Compile Include="..\..\src\System\Net\Http\CancellationHelper.cs"
+             Link="ProductionCode\System\Net\Http\CancellationHelper.cs" />
     <Compile Include="..\..\src\System\Net\Http\ClientCertificateOption.cs"
              Link="ProductionCode\System\Net\Http\ClientCertificateOption.cs" />
     <Compile Include="..\..\src\System\Net\Http\DelegatingHandler.cs"
@@ -80,6 +84,10 @@
              Link="ProductionCode\System\IO\DelegatingStream.cs" />
     <Compile Include="..\..\src\System\Net\Http\ByteArrayHelpers.cs"
              Link="ProductionCode\System\Net\Http\ByteArrayHelpers.cs" />
+    <Compile Include="..\..\src\System\Net\Http\EmptyContent.cs"
+             Link="ProductionCode\System\Net\Http\EmptyContent.cs" />
+    <Compile Include="..\..\src\System\Net\Http\EmptyReadStream.cs"
+         Link="ProductionCode\System\Net\Http\EmptyReadStream.cs" />
     <Compile Include="..\..\src\System\Net\Http\FormUrlEncodedContent.cs"
              Link="ProductionCode\System\Net\Http\FormUrlEncodedContent.cs" />
     <Compile Include="..\..\src\System\Net\Http\Headers\AltSvcHeaderParser.cs"
@@ -152,6 +160,8 @@
              Link="ProductionCode\System\Net\Http\Headers\ProductInfoHeaderParser.cs" />
     <Compile Include="..\..\src\System\Net\Http\Headers\ProductInfoHeaderValue.cs"
              Link="ProductionCode\System\Net\Http\Headers\ProductInfoHeaderValue.cs" />
+    <Compile Include="..\..\src\System\Net\Http\Headers\QPackStaticTable.cs"
+             Link="ProductionCode\System\Net\Http\Headers\QPackStaticTable.cs" />
     <Compile Include="..\..\src\System\Net\Http\Headers\RangeConditionHeaderValue.cs"
              Link="ProductionCode\System\Net\Http\Headers\RangeConditionHeaderValue.cs" />
     <Compile Include="..\..\src\System\Net\Http\Headers\RangeHeaderValue.cs"

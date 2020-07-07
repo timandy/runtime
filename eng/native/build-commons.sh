@@ -48,15 +48,22 @@ check_prereqs()
 {
     echo "Checking prerequisites..."
 
-    # Check presence of CMake on the path
-    command -v cmake 2>/dev/null || { echo >&2 "Please install cmake before running this script"; exit 1; }
+    if ! cmake --help 2>&1 | grep -q \\-B; then
+        echo "Please install cmake v3.14.5 or newer from https://www.cmake.org/download/."
+        exit 1
+    fi
 
-    function version { echo "$@" | awk -F. '{ printf("%d%02d%02d\n", $1,$2,$3); }'; }
+    if [[ "$__HostOS" == "OSX" ]]; then
+        # Check presence of pkg-config on the path
+        command -v pkg-config 2>/dev/null || { echo >&2 "Please install pkg-config before running this script, see https://github.com/dotnet/runtime/blob/master/docs/workflow/requirements/macos-requirements.md"; exit 1; }
 
-    local cmake_version="$(cmake --version | awk '/^cmake.* version [0-9]+\.[0-9]+\.[0-9]+$/ {print $3}')"
-
-    if [[ "$(version "$cmake_version")" -lt "$(version 3.14.2)" ]]; then
-        echo "Please install CMake 3.14.2 or newer from http://www.cmake.org/download/ or https://apt.kitware.com and ensure it is on your path."; exit 1;
+        if ! pkg-config openssl ; then
+            # We export the proper PKG_CONFIG_PATH where openssl was installed by Homebrew
+            # It's important to _export_ it since build-commons.sh is sourced by other scripts such as build-native.sh
+            export PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+            # We try again with the PKG_CONFIG_PATH in place, if pkg-config still can't find OpenSSL, exit with an error, cmake won't find OpenSSL either
+            pkg-config openssl || { echo >&2 "Please install openssl before running this script, see https://github.com/dotnet/runtime/blob/master/docs/workflow/requirements/macos-requirements.md"; exit 1; }
+        fi
     fi
 
     if [[ "$__UseNinja" == 1 ]]; then
@@ -396,7 +403,7 @@ done
 # Get the number of processors available to the scheduler
 # Other techniques such as `nproc` only get the number of
 # processors available to a single process.
-platform=$(uname)
+platform="$(uname)"
 if [[ "$platform" == "FreeBSD" ]]; then
   __NumProc=$(sysctl hw.ncpu | awk '{ print $2+1 }')
 elif [[ "$platform" == "NetBSD" || "$platform" == "SunOS" ]]; then
