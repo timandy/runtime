@@ -3,11 +3,19 @@
 
 #pragma once
 
+#define NOMINMAX
+
 #include <atomic>
 #include <cstdio>
 #include "cor.h"
 #include "corprof.h"
 #include "profilerstring.h"
+
+#if WIN32
+#define EXPORT
+#else // WIN32
+#define EXPORT __attribute__ ((visibility ("default")))
+#endif // WIN32
 
 #define SHORT_LENGTH    32
 #define STRING_LENGTH  256
@@ -108,7 +116,7 @@ protected:
     String GetModuleIDName(ModuleID modId);
 
 public:
-    ICorProfilerInfo9* pCorProfilerInfo;
+    ICorProfilerInfo11* pCorProfilerInfo;
 
     Profiler();
     virtual ~Profiler();
