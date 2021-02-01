@@ -6,13 +6,15 @@ using Microsoft.DotNet.CoreSetup.Test;
 using Microsoft.NET.HostModel.Bundle;
 using Xunit;
 
+[assembly: ActiveIssue("https://github.com/dotnet/runtime/issues/44657", TestPlatforms.Linux)]
+
 namespace AppHost.Bundle.Tests
 {
-    public class SingleFileApiTests : BundleTestBase, IClassFixture<SingleFileApiTests.SharedTestState>
+    public class SingleFileApiTests : BundleTestBase, IClassFixture<SingleFileSharedState>
     {
-        private SharedTestState sharedTestState;
+        private SingleFileSharedState sharedTestState;
 
-        public SingleFileApiTests(SharedTestState fixture)
+        public SingleFileApiTests(SingleFileSharedState fixture)
         {
             sharedTestState = fixture;
         }
@@ -85,19 +87,40 @@ namespace AppHost.Bundle.Tests
                 .HaveStdOutContaining(appPath);
         }
 
-        public class SharedTestState : SharedTestStateBase, IDisposable
+        [Fact]
+        public void AppContext_Native_Search_Dirs_Contains_Bundle_Dir()
         {
-            public TestProjectFixture TestFixture { get; set; }
+            var fixture = sharedTestState.TestFixture.Copy();
+            Bundler bundler = BundleHelper.BundleApp(fixture, out string singleFile);
+            string extractionDir = BundleHelper.GetExtractionDir(fixture, bundler).Name;
+            string bundleDir = BundleHelper.GetBundleDir(fixture).FullName;
 
-            public SharedTestState()
-            {
-                TestFixture = PreparePublishedSelfContainedTestProject("SingleFileApiTests");
-            }
+            // If we don't extract anything to disk, the extraction dir shouldn't
+            // appear in the native search dirs.
+            Command.Create(singleFile, "native_search_dirs")
+                .CaptureStdErr()
+                .CaptureStdOut()
+                .Execute()
+                .Should().Pass()
+                .And.HaveStdOutContaining(bundleDir)
+                .And.NotHaveStdOutContaining(extractionDir);
+        }
 
-            public void Dispose()
-            {
-                TestFixture.Dispose();
-            }
+        [Fact]
+        public void AppContext_Native_Search_Dirs_Contains_Bundle_And_Extraction_Dirs()
+        {
+            var fixture = sharedTestState.TestFixture.Copy();
+            Bundler bundler = BundleHelper.BundleApp(fixture, out string singleFile, BundleOptions.BundleNativeBinaries);
+            string extractionDir = BundleHelper.GetExtractionDir(fixture, bundler).Name;
+            string bundleDir = BundleHelper.GetBundleDir(fixture).FullName;
+
+            Command.Create(singleFile, "native_search_dirs")
+                .CaptureStdErr()
+                .CaptureStdOut()
+                .Execute()
+                .Should().Pass()
+                .And.HaveStdOutContaining(extractionDir)
+                .And.HaveStdOutContaining(bundleDir);
         }
     }
 }

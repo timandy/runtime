@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.14.5)
+cmake_minimum_required(VERSION 3.16)
+cmake_policy(SET CMP0091 NEW)
 
 # C Compiler flags
-SET (CMAKE_C_FLAGS_INIT                     "/W0 /FC")
+SET (CMAKE_C_FLAGS_INIT                     "/FC")
 SET (CMAKE_C_FLAGS_DEBUG_INIT               "/Od /Zi")
 SET (CMAKE_C_FLAGS_RELEASE_INIT             "/Ox")
 SET (CMAKE_C_FLAGS_RELWITHDEBINFO_INIT      "/O2 /Zi")
@@ -23,6 +24,17 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message(FATAL_ERROR "Binary directory isn't being correctly set before calling Cmake. Tree must be built in separate directory from source.")
 endif()
 
+if(STATIC_LIBS_ONLY)
+    # Suppress exporting of the PAL APIs
+    add_definitions(-DPALEXPORT=EXTERN_C)
+
+    set(GEN_SHARED_LIB 0)
+    set(STATIC_LIB_DESTINATION lib)
+else()
+    set(GEN_SHARED_LIB 1)
+    set(STATIC_LIB_DESTINATION .)
+endif()
+
 project(CoreFX)
 
 # The following options are set by the razzle build
@@ -33,11 +45,13 @@ add_compile_options(/Oy-)         # disable suppressing of the creation of frame
 add_compile_options(/U_MT)        # undefine the predefined _MT macro
 add_compile_options(/GF)          # enable read-only string pooling
 add_compile_options(/Gm-)         # disable minimal rebuild
+string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 add_compile_options(/EHa)         # enable C++ EH (w/ SEH exceptions)
 add_compile_options(/Zp8)         # pack structs on 8-byte boundary
 add_compile_options(/Gy)          # separate functions for linker
 add_compile_options(/Zc:wchar_t-) # C++ language conformance: wchar_t is NOT the native type, but a typedef
 add_compile_options(/Zc:forScope) # C++ language conformance: enforce Standard C++ for scoping rules
+string(REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 add_compile_options(/GR-)         # disable C++ RTTI
 add_compile_options(/FC)          # use full pathnames in diagnostics
 add_compile_options(/MP)          # Build with Multiple Processes (number of processes equal to the number of processors)
@@ -52,16 +66,8 @@ if ($ENV{__BuildArch} STREQUAL "x86")
     add_compile_options(/Gz)
 endif ()
 
-if (($ENV{__BuildArch} STREQUAL "arm") OR ($ENV{__BuildArch} STREQUAL "arm64"))
-    if(NOT DEFINED CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION OR CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION STREQUAL "" )
-          message(FATAL_ERROR "Windows SDK is required for the ARM32 or ARM64 build.")
-      else()
-          message("Using Windows SDK version ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
-      endif()
-endif ()
-
 # enable control-flow-guard support for native components
-add_compile_options(/guard:cf) 
+add_compile_options(/guard:cf)
 list(APPEND __SharedLinkArgs /GUARD:CF)
 
 # Statically linked CRT (libcmt[d].lib, libvcruntime[d].lib and libucrt[d].lib) by default. This is done to avoid
@@ -71,8 +77,7 @@ list(APPEND __SharedLinkArgs /GUARD:CF)
 # won't do the same for debug/checked builds since ucrtbased.dll is not redistributable and Debug/Checked builds are not
 # production-time scenarios.
 
-add_compile_options($<$<CONFIG:DEBUG>:/MTd>)
-add_compile_options($<$<CONFIG:RELEASE>:/MT>)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 add_compile_options($<$<CONFIG:RELEASE>:/GL>)
 add_compile_options($<$<CONFIG:RELEASE>:/O1>)
@@ -119,4 +124,9 @@ endif ()
 # as other asserts should still be included.
 add_compile_definitions($<$<CONFIG:RELEASE>:NDEBUG>)
 
-add_subdirectory(clrcompression)
+# we only need to build System.Globalization.Native when building static libs.
+if(STATIC_LIBS_ONLY)
+    add_subdirectory(../Unix/System.Globalization.Native System.Globalization.Native)
+endif()
+
+add_subdirectory(System.IO.Compression.Native)

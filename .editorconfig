@@ -159,6 +159,7 @@ csharp_space_between_square_brackets = false
 
 # Analyzers
 dotnet_code_quality.ca1802.api_surface = private, internal
+dotnet_code_quality.ca1822.api_surface = private, internal
 dotnet_code_quality.ca2208.api_surface = public
 
 # License header
@@ -195,5 +196,5 @@ indent_size = 2
 # Shell scripts
 [*.sh]
 end_of_line = lf
-[*.{cmd, bat}]
+[*.{cmd,bat}]
 end_of_line = crlf
